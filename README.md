@@ -1,2 +1,2 @@
 # Adminbox
-Automatically retrieve your salary slip on Adminbox.
+Automatically retrieve your salary slips on Adminbox.
