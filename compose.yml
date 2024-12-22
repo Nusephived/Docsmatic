@@ -2,7 +2,7 @@ services:
   docsmatic:
     image: ghcr.io/nusephived/docsmatic:latest
     container_name: docsmatic
-    restart: unless-stopped
+    restart: no
     networks:
       - apps
     environment:

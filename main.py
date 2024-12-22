@@ -1,8 +1,8 @@
 import os
 from adminbox import login, get_docs, download_document
 
-username = os.getenv("USERNAME")
-password = os.getenv("PASSWORD")
+username = os.getenv("AB_USERNAME")
+password = os.getenv("AB_PASSWORD")
 
 print("Checking for new documents on Adminbox...")
 access_token = login(username, password)
