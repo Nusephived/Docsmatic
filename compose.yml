@@ -7,10 +7,10 @@ services:
       - apps
     environment:
       - TZ=Europe/Paris
-      - USERNAME=${USERNAME}
-      - PASSWORD=${PASSWORD}
+      - AB_USERNAME=${AB_USERNAME}
+      - AB_PASSWORD=${AB_PASSWORD}
     volumes:
-      - /tank/apps/vaultwarden/data:/data:rw
+      - "/tank/apps/nextcloud/data/hugobsh/files/Archives/Fiches de paie/AlphaOmega:/docsmatic/docs/salary/AlphaOmega:rw"
 
 networks:
   apps:

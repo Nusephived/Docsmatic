@@ -7,7 +7,7 @@ on:
       - 'main'
 
 jobs:
-  docker:
+  build_publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,7 +20,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push
+      - name: Build & Publish
         run: |
           docker build . -t ghcr.io/nusephived/docsmatic:latest
           docker push ghcr.io/nusephived/docsmatic:latest
