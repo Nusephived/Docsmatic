@@ -1,0 +1,17 @@
+services:
+  docsmatic:
+    image: ghcr.io/nusephived/docsmatic:latest
+    container_name: docsmatic
+    restart: unless-stopped
+    networks:
+      - apps
+    environment:
+      - TZ=Europe/Paris
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+    volumes:
+      - /tank/apps/vaultwarden/data:/data:rw
+
+networks:
+  apps:
+    external: true
