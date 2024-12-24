@@ -9,8 +9,8 @@ services:
       - TZ=Europe/Paris
       - AB_USERNAME=${AB_USERNAME}
       - AB_PASSWORD=${AB_PASSWORD}
-    volumes:
-      - "/tank/apps/nextcloud/data/hugobsh/files/Archives/Fiches de paie/AlphaOmega:/docsmatic/docs/salary/AlphaOmega:rw"
+      - NC_USERNAME=${NC_USERNAME}
+      - NC_PASSWORD=${NC_PASSWORD}
 
 networks:
   apps:

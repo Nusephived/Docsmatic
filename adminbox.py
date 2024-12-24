@@ -4,8 +4,8 @@ import hashlib
 import os
 from bs4 import BeautifulSoup
 import base64
+from nextcloud import ls, create_folder, upload, salary_path
 
-salary_path = "docs/salary/AlphaOmega"
 url_auth = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/auth"
 url_token = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/token"
 redirect_uri = "https://adminbox.myarchive.lu/v10/users/sign_in/callback"
@@ -71,7 +71,7 @@ def login(username, password):
     token_response = session.post(url_token, data=token_payload)
 
     if token_response.status_code == 200:
-        print("Login successful")
+        print("Adminbox login successful")
         token_data = token_response.json()
         access_token = token_data.get("access_token")
         # print("Access Token:", access_token)
@@ -95,29 +95,29 @@ def get_docs(access_token):
 def retrieve_new_docs(docs):
     new_docs = []
     docs = delete_duplicates(docs)
-
-    create_folder(docs)
+    check_folders(docs)
 
     for doc in docs["inbox_filtered_items"]:
-        year = int(doc["date"].split("-")[0])
+        year = doc["date"].split("-")[0]
         month = int(doc["date"].split("-")[1])
 
-        local_docs = os.listdir(f"docs/salary/AlphaOmega/{year}")
-
-        if f"{get_name(month)}.pdf" not in local_docs:
+        local_docs = ls(year)
+        if local_docs is None:
             new_docs.append(doc)
+        else:
+            if f"{get_name(month)}.pdf" not in local_docs:
+                new_docs.append(doc)
 
     docs["inbox_filtered_items"] = new_docs
     return new_docs
 
-def create_folder(docs):
+def check_folders(docs):
     years = set(doc["date"].split("-")[0] for doc in docs["inbox_filtered_items"])
 
+    existing_folders = ls()
     for year in years:
-        year_path = os.path.join(salary_path, year)
-        if not os.path.exists(year_path):
-            os.makedirs(year_path, exist_ok=True)
-            print(f"Created folder: {year_path}")
+        if year not in existing_folders:
+            create_folder(year)
 
 def delete_duplicates(docs):
     unique_docs = []
@@ -152,10 +152,10 @@ def get_name(month):
 
 def get_destination(type, year):
     if type == "salary_slip":
-        return f"docs/salary/AlphaOmega/{year}"
+        return f"/{salary_path}/{year}"
 
 def download_document(access_token, docs):
-    downloaded_docs = []
+    uploaded_docs = []
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -169,15 +169,14 @@ def download_document(access_token, docs):
         name = get_name(month)
 
         response = requests.get(download_url, headers=headers)
+        print(f"Downloaded: {name}.pdf")
 
         if response.status_code == 200:
             try:
                 pdf_data = base64.b64decode(response.text)
+                upload(pdf_data, get_destination(type, year), f"{name}.pdf")
 
-                with open(f"{get_destination(type, year)}/{name}.pdf", "wb") as f:
-                    f.write(pdf_data)
-                print(f"Downloaded: {name}.pdf")
-                downloaded_docs.append(name)
+                uploaded_docs.append(name)
 
             except Exception as e:
                 print(f"Failed to decode Base64 content: {e}")
@@ -185,4 +184,4 @@ def download_document(access_token, docs):
             print(f"Failed to download document {name}.pdf")
             print("Error:", response.status_code, response.text)
 
-    return downloaded_docs
+    return uploaded_docs
