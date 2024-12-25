@@ -146,7 +146,7 @@ def get_name(month):
         9: "September",
         10: "October",
         11: "November",
-        12: "Décember",
+        12: "December",
     }
     return months.get(month)
 
