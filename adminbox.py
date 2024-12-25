@@ -101,11 +101,11 @@ def retrieve_new_docs(docs):
         year = doc["date"].split("-")[0]
         month = int(doc["date"].split("-")[1])
 
-        local_docs = ls(year)
-        if local_docs is None:
+        existing_docs = ls(year)
+        if existing_docs is None:
             new_docs.append(doc)
         else:
-            if f"{get_name(month)}.pdf" not in local_docs:
+            if f"{get_name(month)}.pdf" not in existing_docs:
                 new_docs.append(doc)
 
     docs["inbox_filtered_items"] = new_docs

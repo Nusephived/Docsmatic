@@ -20,6 +20,7 @@ def ls(dir = ""):
             elem = elem.text.replace("%20", " ")
             elem = elem.replace(f"/remote.php/webdav" + salary_path, "")
             elem = elem.replace("/", "")
+            elem = elem.replace(dir, "")
             ls.append(elem)
 
         ls.pop(0)
