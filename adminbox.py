@@ -46,6 +46,7 @@ def login(username, password):
     login_payload = {
         "username": username,
         "password": password,
+        "skip": "Ignorer pour le moment", # Ignore OTP
     }
     login_response = session.post(login_url, data=login_payload, allow_redirects=False)
 
