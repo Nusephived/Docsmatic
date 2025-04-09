@@ -46,10 +46,16 @@ def login(username, password):
     login_payload = {
         "username": username,
         "password": password,
-        "skip": "Ignorer pour le moment", # Ignore OTP
     }
     login_response = session.post(login_url, data=login_payload, allow_redirects=False)
 
+    if login_response.status_code == 200:
+        # Check if it ask 2FA and ignore
+        print("Probably asking for 2FA")
+        print("Check if there is a redirect URL in the response headers.")
+        print("Headers :", login_response.headers)
+        print("Found", login_response.headers["location"])
+        raise Exception("If found, no need to handle the ignore, PLEASE ADAPT THE CODE :)")
     # Check if the response contains a redirect to the callback URL with a code
     if 300 <= login_response.status_code < 400:
         # Get the "Location" header for the redirect URL
@@ -58,7 +64,7 @@ def login(username, password):
         if not code:
             raise Exception("Authorization code not found in the redirect URL.")
         code = code.group(1)
-    else:
+    if login_response.status_code >= 400:
         raise Exception("Login failed, no redirect occurred.")
 
     # Exchange the authorization code for an access token
@@ -106,10 +112,13 @@ def retrieve_new_docs(docs):
         if existing_docs is None:
             new_docs.append(doc)
         else:
+            if doc["type"] == "certificate":
+                new_docs.append(doc)
             if f"{get_name(month)}.pdf" not in existing_docs:
                 new_docs.append(doc)
 
     docs["inbox_filtered_items"] = new_docs
+
     return new_docs
 
 def check_folders(docs):
@@ -152,7 +161,7 @@ def get_name(month):
     return months.get(month)
 
 def get_destination(type, year):
-    if type == "salary_slip":
+    if type == "salary_slip" or type == "certificate":
         return f"/{salary_path}/{year}"
 
 def download_document(access_token, docs):
@@ -167,7 +176,11 @@ def download_document(access_token, docs):
         year = int(doc["date"].split("-")[0])
         month = int(doc["date"].split("-")[1])
         type = doc["type"]
-        name = get_name(month)
+
+        if type == "salary_slip":
+            name = get_name(month)
+        if type == "certificate":
+            name = "Certificate"
 
         response = requests.get(download_url, headers=headers)
         print(f"Downloaded: {name}.pdf")
