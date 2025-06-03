@@ -9,6 +9,7 @@ from nextcloud import ls, create_folder, upload, salary_path
 url_auth = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/auth"
 url_token = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/token"
 redirect_uri = "https://adminbox.myarchive.lu/v10/users/sign_in/callback"
+ignore_url = "https://iam.unifiedpost.com/auth/realms/consumer-sso/login-actions/authenticate"
 client_id = "adminbox-lux-fe"
 
 def generate_code_verifier():
@@ -52,18 +53,27 @@ def login(username, password):
     if login_response.status_code == 200:
         # Check if it ask 2FA and ignore
         print("Probably asking for 2FA")
-        print("Check if there is a redirect URL in the response headers.")
-        print("Headers :", login_response.headers)
-        print("Found", login_response.headers["location"])
-        raise Exception("If found, no need to handle the ignore, PLEASE ADAPT THE CODE :)")
+
+        params = {
+            "client_id": client_id,
+        }
+
+        data = {
+            "skip": "Ignorer pour le moment",
+        }
+
+        ignore_response = session.post(ignore_url, params=params, data=data, allow_redirects=False)
+
+        print("Headers :", ignore_response.headers) # Debugging line to see headers
+        print("Found", ignore_response.headers["location"])
+        code = get_code_from_redirect_url(ignore_response.headers["location"])
+
     # Check if the response contains a redirect to the callback URL with a code
     if 300 <= login_response.status_code < 400:
         # Get the "Location" header for the redirect URL
         redirect_url = login_response.headers.get("Location")
-        code = re.search(r"code=([^&]+)", redirect_url)
-        if not code:
-            raise Exception("Authorization code not found in the redirect URL.")
-        code = code.group(1)
+        code = get_code_from_redirect_url(redirect_url)
+
     if login_response.status_code >= 400:
         raise Exception("Login failed, no redirect occurred.")
 
@@ -85,6 +95,14 @@ def login(username, password):
         return access_token
     else:
         raise Exception("Failed to obtain token:", token_response.text)
+
+def get_code_from_redirect_url(redirect_url):
+    code = re.search(r"code=([^&]+)", redirect_url)
+    if not code:
+        raise Exception("Authorization code not found in the redirect URL.")
+    code = code.group(1)
+
+    return code
 
 def get_docs(access_token):
     headers = {
@@ -112,7 +130,7 @@ def retrieve_new_docs(docs):
         if existing_docs is None:
             new_docs.append(doc)
         else:
-            if doc["type"] == "certificate":
+            if doc["type"] == "certificate" and "Certificate.pdf" not in existing_docs:
                 new_docs.append(doc)
             if f"{get_name(month)}.pdf" not in existing_docs:
                 new_docs.append(doc)
