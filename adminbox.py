@@ -4,6 +4,8 @@ import hashlib
 import os
 from bs4 import BeautifulSoup
 import base64
+from urllib.parse import urlparse, parse_qs
+
 from nextcloud import ls, create_folder, upload, salary_path
 
 url_auth = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/auth"
@@ -54,18 +56,26 @@ def login(username, password):
         # Check if it ask 2FA and ignore
         print("Probably asking for 2FA")
 
+        soup = BeautifulSoup(login_response.text, "html.parser")
+        augment_security_url = soup.find("form", id="kc-augement-security-form")["action"]
+        session_code, execution, tab_id = extract_params(augment_security_url)
+
         params = {
-            "client_id": client_id,
+            'session_code': session_code,
+            'execution': execution,
+            'client_id': client_id,
+            'tab_id': tab_id,
         }
 
         data = {
             "skip": "Ignorer pour le moment",
         }
 
-        ignore_response = session.post(ignore_url, params=params, data=data, allow_redirects=False)
+        ignore_response = session.post(ignore_url, params=params, data=data, allow_redirects=True) # REDIRECT TRUE ?
 
         print("Headers :", ignore_response.headers) # Debugging line to see headers
         print("Found", ignore_response.headers["location"])
+
         code = get_code_from_redirect_url(ignore_response.headers["location"])
 
     # Check if the response contains a redirect to the callback URL with a code
@@ -103,6 +113,16 @@ def get_code_from_redirect_url(redirect_url):
     code = code.group(1)
 
     return code
+
+def extract_params(augment_security_url):
+    parsed_url = urlparse(augment_security_url)
+    query_params = parse_qs(parsed_url.query)
+
+    session_code = query_params.get("session_code", [None])[0]
+    execution = query_params.get("execution", [None])[0]
+    tab_id = query_params.get("tab_id", [None])[0]
+
+    return session_code, execution, tab_id
 
 def get_docs(access_token):
     headers = {
