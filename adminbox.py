@@ -8,21 +8,32 @@ from urllib.parse import urlparse, parse_qs
 
 from nextcloud import ls, create_folder, upload, salary_path
 
-url_auth = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/auth"
-url_token = "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/token"
+url_auth = (
+    "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/auth"
+)
+url_token = (
+    "https://iam.unifiedpost.com/auth/realms/consumer-sso/protocol/openid-connect/token"
+)
 redirect_uri = "https://adminbox.myarchive.lu/v10/users/sign_in/callback"
-ignore_url = "https://iam.unifiedpost.com/auth/realms/consumer-sso/login-actions/authenticate"
+ignore_url = (
+    "https://iam.unifiedpost.com/auth/realms/consumer-sso/login-actions/authenticate"
+)
 client_id = "adminbox-lux-fe"
+
 
 def generate_code_verifier():
     return base64.urlsafe_b64encode(os.urandom(96)).rstrip(b"=").decode("utf-8")
 
+
 # Function to generate code challenge from code verifier
 def generate_code_challenge(code_verifier):
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode("utf-8")).digest()
-    ).rstrip(b"=").decode("utf-8")
+    code_challenge = (
+        base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode("utf-8")).digest())
+        .rstrip(b"=")
+        .decode("utf-8")
+    )
     return code_challenge
+
 
 def login(username, password):
     code_verifier = generate_code_verifier()
@@ -57,23 +68,27 @@ def login(username, password):
         print("Probably asking for 2FA")
 
         soup = BeautifulSoup(login_response.text, "html.parser")
-        augment_security_url = soup.find("form", id="kc-augement-security-form")["action"]
+        augment_security_url = soup.find("form", id="kc-augement-security-form")[
+            "action"
+        ]
         session_code, execution, tab_id = extract_params(augment_security_url)
 
         params = {
-            'session_code': session_code,
-            'execution': execution,
-            'client_id': client_id,
-            'tab_id': tab_id,
+            "session_code": session_code,
+            "execution": execution,
+            "client_id": client_id,
+            "tab_id": tab_id,
         }
 
         data = {
             "skip": "Ignorer pour le moment",
         }
 
-        ignore_response = session.post(ignore_url, params=params, data=data, allow_redirects=True) # REDIRECT TRUE ?
+        ignore_response = session.post(
+            ignore_url, params=params, data=data, allow_redirects=True
+        )  # REDIRECT TRUE ?
 
-        print("Headers :", ignore_response.headers) # Debugging line to see headers
+        print("Headers :", ignore_response.headers)  # Debugging line to see headers
         print("Found", ignore_response.headers["location"])
 
         code = get_code_from_redirect_url(ignore_response.headers["location"])
@@ -106,6 +121,7 @@ def login(username, password):
     else:
         raise Exception("Failed to obtain token:", token_response.text)
 
+
 def get_code_from_redirect_url(redirect_url):
     code = re.search(r"code=([^&]+)", redirect_url)
     if not code:
@@ -113,6 +129,7 @@ def get_code_from_redirect_url(redirect_url):
     code = code.group(1)
 
     return code
+
 
 def extract_params(augment_security_url):
     parsed_url = urlparse(augment_security_url)
@@ -124,18 +141,22 @@ def extract_params(augment_security_url):
 
     return session_code, execution, tab_id
 
+
 def get_docs(access_token):
     headers = {
         "Authorization": f"Bearer {access_token}",
     }
 
-    response = requests.get("https://adminbox.myarchive.lu/inbox_items", headers=headers)
+    response = requests.get(
+        "https://adminbox.myarchive.lu/inbox_items", headers=headers
+    )
 
     if response.status_code == 200:
         return retrieve_new_docs(response.json())
     else:
         print("Failed to retrieve documents:", response.status_code, response.text)
         return None
+
 
 def retrieve_new_docs(docs):
     new_docs = []
@@ -159,6 +180,7 @@ def retrieve_new_docs(docs):
 
     return new_docs
 
+
 def check_folders(docs):
     years = set(doc["date"].split("-")[0] for doc in docs["inbox_filtered_items"])
 
@@ -166,6 +188,7 @@ def check_folders(docs):
     for year in years:
         if year not in existing_folders:
             create_folder(year)
+
 
 def delete_duplicates(docs):
     unique_docs = []
@@ -180,6 +203,7 @@ def delete_duplicates(docs):
     del docs["inbox_items"]
     docs["inbox_filtered_items"] = unique_docs
     return docs
+
 
 def get_name(month):
     months = {
@@ -198,9 +222,11 @@ def get_name(month):
     }
     return months.get(month)
 
+
 def get_destination(type, year):
     if type == "salary_slip" or type == "certificate":
         return f"/{salary_path}/{year}"
+
 
 def download_document(access_token, docs):
     uploaded_docs = []
